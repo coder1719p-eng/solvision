@@ -1,7 +1,16 @@
 body {
   margin: 0;
   overflow: hidden;
-  background: black;
+}
+
+#controls {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+  background: white;
+  padding: 6px;
+  border-radius: 4px;
 }
 
 video, canvas {
@@ -11,22 +20,4 @@ video, canvas {
   width: 100vw;
   height: 100vh;
   object-fit: cover;
-}
-
-#controls {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  z-index: 10;
-  background: white;
-  padding: 8px;
-  border-radius: 5px;
-}
-
-#controls input {
-  padding: 5px;
-}
-
-#controls button {
-  padding: 5px 10px;
 }
