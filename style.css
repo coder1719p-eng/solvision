@@ -1,19 +1,10 @@
-/* RESET */
-* {
-  box-sizing: border-box;
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-/* PAGE */
 body {
   margin: 0;
   overflow: hidden;
   background: black;
 }
 
-/* CAMERA + CANVAS */
-video,
-canvas {
+video, canvas {
   position: absolute;
   top: 0;
   left: 0;
@@ -22,26 +13,20 @@ canvas {
   object-fit: cover;
 }
 
-/* CONTROLS */
 #controls {
   position: fixed;
   top: 10px;
   left: 10px;
-  z-index: 100;
-  background: rgba(0, 0, 0, 0.6);
-  padding: 10px;
-  border-radius: 6px;
+  z-index: 10;
+  background: white;
+  padding: 8px;
+  border-radius: 5px;
 }
 
 #controls input {
-  padding: 6px;
-  font-size: 14px;
-  outline: none;
+  padding: 5px;
 }
 
 #controls button {
-  padding: 6px 10px;
-  font-size: 14px;
-  margin-left: 5px;
-  cursor: pointer;
+  padding: 5px 10px;
 }
