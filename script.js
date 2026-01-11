@@ -2,19 +2,26 @@ const video = document.getElementById("video");
 const canvas = document.getElementById("overlay");
 const ctx = canvas.getContext("2d");
 
+// Fullscreen canvas
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 let labeledDescriptors = [];
 
-// ✅ LOAD MODELS
+/* =========================
+   LOAD FACE-API MODELS
+========================= */
 Promise.all([
   faceapi.nets.tinyFaceDetector.loadFromUri("./models"),
   faceapi.nets.faceLandmark68TinyNet.loadFromUri("./models"),
   faceapi.nets.faceRecognitionNet.loadFromUri("./models")
-]).then(startCamera);
+]).then(startCamera).catch(err => {
+  console.error("Model loading error:", err);
+});
 
-// ✅ START CAMERA
+/* =========================
+   START CAMERA
+========================= */
 function startCamera() {
   navigator.mediaDevices.getUserMedia({ video: true })
     .then(stream => {
@@ -26,9 +33,12 @@ function startCamera() {
     });
 }
 
-// ✅ LOAD SAVED PEOPLE
+/* =========================
+   LOAD SAVED PEOPLE
+========================= */
 function loadPeople() {
   const data = JSON.parse(localStorage.getItem("people")) || [];
+
   labeledDescriptors = data.map(p =>
     new faceapi.LabeledFaceDescriptors(
       p.name,
@@ -37,9 +47,13 @@ function loadPeople() {
   );
 }
 
-// ✅ SAVE FACE
+/* =========================
+   SAVE FACE WITH NAME
+========================= */
 async function saveFace() {
-  const name = document.getElementById("nameInput").value.trim();
+  const nameInput = document.getElementById("nameInput");
+  const name = nameInput.value.trim();
+
   if (!name) {
     alert("Enter a name first");
     return;
@@ -56,32 +70,45 @@ async function saveFace() {
   }
 
   const people = JSON.parse(localStorage.getItem("people")) || [];
+
   people.push({
-    name,
+    name: name,
     descriptors: [Array.from(detection.descriptor)]
   });
 
   localStorage.setItem("people", JSON.stringify(people));
-  alert("Face saved!");
+
+  alert("Face saved successfully!");
+  nameInput.value = "";
 
   loadPeople();
 }
 
-// ✅ FACE RECOGNITION LOOP
+/* =========================
+   FACE DETECTION + RECOGNITION
+========================= */
 video.addEventListener("play", async () => {
   loadPeople();
-  const matcher = new faceapi.FaceMatcher(labeledDescriptors, 0.5);
 
   setInterval(async () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (!video.videoWidth) return;
 
     const detections = await faceapi
       .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
       .withFaceLandmarks()
       .withFaceDescriptors();
 
-    detections.forEach(d => {
-      const match = matcher.findBestMatch(d.descriptor);
+    const resized = faceapi.resizeResults(detections, {
+      width: canvas.width,
+      height: canvas.height
+    });
+
+    const matcher = new faceapi.FaceMatcher(labeledDescriptors, 0.5);
+
+    resized.forEach(d => {
+      const result = matcher.findBestMatch(d.descriptor);
       const box = d.detection.box;
 
       ctx.strokeStyle = "lime";
@@ -90,7 +117,7 @@ video.addEventListener("play", async () => {
 
       ctx.fillStyle = "lime";
       ctx.font = "18px Arial";
-      ctx.fillText(match.label, box.x, box.y - 10);
+      ctx.fillText(result.label, box.x, box.y - 10);
     });
-  }, 200);
+  }, 150);
 });
