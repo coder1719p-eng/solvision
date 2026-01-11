@@ -1,89 +1,42 @@
-const video = document.getElementById("video");
-const canvas = document.getElementById("overlay");
-const ctx = canvas.getContext("2d");
-
-const MODEL_URL = "./models";
-
-let faceMatcher = null;
-let labeledDescriptors = [];
-
-// ===================== LOAD MODELS =====================
-async function loadModels() {
-  await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-  await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-  await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-
-  console.log("✅ Models loaded");
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background: #000;
+  color: #fff;
+  font-family: Arial, sans-serif;
 }
 
-// ===================== START CAMERA =====================
-async function startVideo() {
-  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-  video.srcObject = stream;
+.top-bar {
+  padding: 10px;
+  background: #111;
 }
 
-// ===================== FACE DETECTION LOOP =====================
-video.addEventListener("play", () => {
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+.top-bar input {
+  padding: 6px;
+  width: 200px;
+}
 
-  setInterval(async () => {
-    const detections = await faceapi
-      .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
-      .withFaceLandmarks()
-      .withFaceDescriptors();
+.top-bar button {
+  padding: 6px 10px;
+  margin-left: 5px;
+  cursor: pointer;
+}
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+.video-container {
+  position: relative;
+  width: 100vw;
+  height: calc(100vh - 50px);
+}
 
-    const resized = faceapi.resizeResults(detections, {
-      width: canvas.width,
-      height: canvas.height,
-    });
+video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
-    faceapi.draw.drawDetections(canvas, resized);
-    faceapi.draw.drawFaceLandmarks(canvas, resized);
-
-    if (faceMatcher) {
-      resized.forEach(det => {
-        const bestMatch = faceMatcher.findBestMatch(det.descriptor);
-        const box = det.detection.box;
-        ctx.fillStyle = "red";
-        ctx.font = "16px Arial";
-        ctx.fillText(bestMatch.toString(), box.x, box.y - 5);
-      });
-    }
-
-  }, 100);
-});
-
-// ===================== SAVE FACE =====================
-document.getElementById("saveBtn").addEventListener("click", async () => {
-  const name = document.getElementById("nameInput").value.trim();
-  if (!name) {
-    alert("Enter a name first");
-    return;
-  }
-
-  const detection = await faceapi
-    .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-    .withFaceLandmarks()
-    .withFaceDescriptor();
-
-  if (!detection) {
-    alert("No face detected");
-    return;
-  }
-
-  labeledDescriptors.push(
-    new faceapi.LabeledFaceDescriptors(name, [detection.descriptor])
-  );
-
-  faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
-  alert("Face saved: " + name);
-});
-
-// ===================== INIT =====================
-(async () => {
-  await loadModels();
-  await startVideo();
-})();
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
