@@ -1,10 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
   <title>Face Vision</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -13,9 +11,10 @@
   <video id="video" autoplay muted playsinline></video>
   <canvas id="overlay"></canvas>
 
-  <div id="controls">
+  <!-- REGISTER PANEL -->
+  <div id="register">
     <input id="nameInput" placeholder="Enter name">
-    <button id="saveBtn">Save Face</button>
+    <button onclick="saveFace()">Save Face</button>
   </div>
 
   <script src="script.js"></script>
