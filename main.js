@@ -1,7 +1,6 @@
 const video = document.getElementById("video");
 const canvas = document.getElementById("overlay");
 const ctx = canvas.getContext("2d");
-const saveBtn = document.getElementById("saveBtn");
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -46,7 +45,7 @@ function loadPeople() {
 }
 
 // ================= SAVE FACE =================
-saveBtn.addEventListener("click", async () => {
+async function saveFace() {
   const name = document.getElementById("nameInput").value.trim();
   if (!name) {
     alert("Enter a name first");
@@ -72,7 +71,7 @@ saveBtn.addEventListener("click", async () => {
   localStorage.setItem("people", JSON.stringify(people));
   alert("Face saved!");
   loadPeople();
-});
+}
 
 // ================= RECOGNITION LOOP =================
 video.addEventListener("play", () => {
@@ -85,6 +84,8 @@ video.addEventListener("play", () => {
       .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
       .withFaceLandmarks()
       .withFaceDescriptors();
+
+    if (!labeledDescriptors.length) return;
 
     const matcher = new faceapi.FaceMatcher(labeledDescriptors, 0.5);
 
