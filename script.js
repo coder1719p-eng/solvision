@@ -2,80 +2,119 @@ const video = document.getElementById("video");
 const canvas = document.getElementById("overlay");
 const ctx = canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+const nameInput = document.getElementById("nameInput");
+const saveBtn = document.getElementById("saveBtn");
 
-let faceMatcher;
 let labeledDescriptors = [];
 
-Promise.all([
-  faceapi.nets.tinyFaceDetector.loadFromUri('./models'),
-  faceapi.nets.faceLandmark68Net.loadFromUri('./models'),
-  faceapi.nets.faceRecognitionNet.loadFromUri('./models')
-]).then(startCamera);
-
-function startCamera() {
-  navigator.mediaDevices.getUserMedia({ video: true })
-    .then(stream => video.srcObject = stream);
+// Resize canvas
+function resize() {
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
 }
 
-async function loadPeople() {
-  const data = JSON.parse(localStorage.getItem("people")) || [];
-  labeledDescriptors = data.map(p =>
-    new faceapi.LabeledFaceDescriptors(
-      p.name,
-      p.descriptors.map(d => new Float32Array(d))
-    )
-  );
-  faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.5);
+// Load models
+async function loadModels() {
+  const MODEL_URL = "./models";
+
+  await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+  await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+  await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+
+  console.log("Models loaded");
 }
 
-video.addEventListener("play", async () => {
-  await loadPeople();
+// Start camera
+async function startVideo() {
+  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  video.srcObject = stream;
+}
 
-  setInterval(async () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const detections = await faceapi
-      .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
-      .withFaceLandmarks()
-      .withFaceDescriptors();
-
-    detections.forEach(d => {
-      const result = faceMatcher
-        ? faceMatcher.findBestMatch(d.descriptor)
-        : { label: "Unknown" };
-
-      const box = d.detection.box;
-      ctx.strokeStyle = "lime";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(box.x, box.y, box.width, box.height);
-      ctx.fillStyle = "lime";
-      ctx.font = "18px Arial";
-      ctx.fillText(result.label, box.x, box.y - 10);
-    });
-
-  }, 200);
-});
-
-async function saveFace() {
-  const name = document.getElementById("nameInput").value;
-  if (!name) return alert("Enter a name");
+// Save face
+saveBtn.onclick = async () => {
+  const name = nameInput.value.trim();
+  if (!name) {
+    alert("Enter a name first");
+    return;
+  }
 
   const detection = await faceapi
     .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
     .withFaceLandmarks()
     .withFaceDescriptor();
 
-  if (!detection) return alert("No face detected");
+  if (!detection) {
+    alert("No face detected");
+    return;
+  }
 
-  const people = JSON.parse(localStorage.getItem("people")) || [];
-  people.push({
-    name,
-    descriptors: [Array.from(detection.descriptor)]
-  });
+  labeledDescriptors.push(
+    new faceapi.LabeledFaceDescriptors(name, [detection.descriptor])
+  );
 
-  localStorage.setItem("people", JSON.stringify(people));
+  localStorage.setItem(
+    "faces",
+    JSON.stringify(
+      labeledDescriptors.map(ld => ({
+        label: ld.label,
+        descriptors: Array.from(ld.descriptors[0])
+      }))
+    )
+  );
+
   alert("Face saved!");
-  loadPeople();
+};
+
+// Load saved faces
+function loadSavedFaces() {
+  const data = JSON.parse(localStorage.getItem("faces") || "[]");
+
+  labeledDescriptors = data.map(
+    f => new faceapi.LabeledFaceDescriptors(
+      f.label,
+      [new Float32Array(f.descriptors)]
+    )
+  );
 }
+
+// Face loop
+async function recognize() {
+  resize();
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const detections = await faceapi
+    .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+    .withFaceLandmarks()
+    .withFaceDescriptors();
+
+  if (labeledDescriptors.length > 0) {
+    const matcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
+
+    detections.forEach(det => {
+      const match = matcher.findBestMatch(det.descriptor);
+      const box = det.detection.box;
+
+      ctx.strokeStyle = "lime";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+      ctx.fillStyle = "lime";
+      ctx.font = "18px Arial";
+      ctx.fillText(match.label, box.x, box.y - 10);
+    });
+  }
+
+  requestAnimationFrame(recognize);
+}
+
+// Init
+(async () => {
+  await loadModels();
+  loadSavedFaces();
+  await startVideo();
+
+  video.onloadedmetadata = () => {
+    recognize();
+  };
+})();
