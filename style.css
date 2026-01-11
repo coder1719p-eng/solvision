@@ -10,4 +10,25 @@ video, canvas {
   left: 0;
   width: 100vw;
   height: 100vh;
+  object-fit: cover;
+}
+
+#controls {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.7);
+  padding: 10px;
+  border-radius: 8px;
+}
+
+#controls input {
+  padding: 6px;
+}
+
+#controls button {
+  padding: 6px 10px;
+  margin-left: 5px;
+  cursor: pointer;
 }
