@@ -1,37 +1,42 @@
 const video = document.getElementById("video");
 const canvas = document.getElementById("overlay");
 const ctx = canvas.getContext("2d");
+const saveBtn = document.getElementById("saveBtn");
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 let labeledDescriptors = [];
 
-// LOAD MODELS
+// ================= LOAD MODELS =================
 async function loadModels() {
-  await faceapi.nets.tinyFaceDetector.loadFromUri("./models");
-  await faceapi.nets.faceLandmark68Net.loadFromUri("./models");
-  await faceapi.nets.faceRecognitionNet.loadFromUri("./models");
+  const MODEL_URL = "./models";
+
+  await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+  await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+  await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+
   startCamera();
 }
 
 loadModels();
 
-// START CAMERA
+// ================= START CAMERA =================
 function startCamera() {
   navigator.mediaDevices.getUserMedia({ video: true })
     .then(stream => {
       video.srcObject = stream;
     })
     .catch(err => {
-      alert("Camera access denied");
+      alert("Camera permission denied");
       console.error(err);
     });
 }
 
-// LOAD SAVED PEOPLE
+// ================= LOAD SAVED PEOPLE =================
 function loadPeople() {
   const data = JSON.parse(localStorage.getItem("people")) || [];
+
   labeledDescriptors = data.map(p =>
     new faceapi.LabeledFaceDescriptors(
       p.name,
@@ -40,8 +45,8 @@ function loadPeople() {
   );
 }
 
-// SAVE FACE
-async function saveFace() {
+// ================= SAVE FACE =================
+saveBtn.addEventListener("click", async () => {
   const name = document.getElementById("nameInput").value.trim();
   if (!name) {
     alert("Enter a name first");
@@ -66,14 +71,12 @@ async function saveFace() {
 
   localStorage.setItem("people", JSON.stringify(people));
   alert("Face saved!");
-
   loadPeople();
-}
+});
 
-// FACE RECOGNITION LOOP
+// ================= RECOGNITION LOOP =================
 video.addEventListener("play", () => {
   loadPeople();
-  const matcher = new faceapi.FaceMatcher(labeledDescriptors, 0.5);
 
   setInterval(async () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -82,6 +85,8 @@ video.addEventListener("play", () => {
       .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
       .withFaceLandmarks()
       .withFaceDescriptors();
+
+    const matcher = new faceapi.FaceMatcher(labeledDescriptors, 0.5);
 
     detections.forEach(d => {
       const match = matcher.findBestMatch(d.descriptor);
