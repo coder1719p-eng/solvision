@@ -2,22 +2,22 @@ const video = document.getElementById("video");
 const canvas = document.getElementById("overlay");
 const ctx = canvas.getContext("2d");
 
-// Fullscreen canvas
+// Fullscreen
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 let labeledDescriptors = [];
 
 /* =========================
-   LOAD FACE-API MODELS
+   LOAD MODELS (FIXED)
 ========================= */
 Promise.all([
   faceapi.nets.tinyFaceDetector.loadFromUri("./models"),
-  faceapi.nets.faceLandmark68TinyNet.loadFromUri("./models"),
+  faceapi.nets.faceLandmark68Net.loadFromUri("./models"), // ✅ FIXED
   faceapi.nets.faceRecognitionNet.loadFromUri("./models")
-]).then(startCamera).catch(err => {
-  console.error("Model loading error:", err);
-});
+])
+.then(startCamera)
+.catch(err => console.error("Model load error:", err));
 
 /* =========================
    START CAMERA
@@ -48,14 +48,12 @@ function loadPeople() {
 }
 
 /* =========================
-   SAVE FACE WITH NAME
+   SAVE FACE
 ========================= */
 async function saveFace() {
-  const nameInput = document.getElementById("nameInput");
-  const name = nameInput.value.trim();
-
+  const name = document.getElementById("nameInput").value.trim();
   if (!name) {
-    alert("Enter a name first");
+    alert("Enter a name");
     return;
   }
 
@@ -70,30 +68,25 @@ async function saveFace() {
   }
 
   const people = JSON.parse(localStorage.getItem("people")) || [];
-
   people.push({
-    name: name,
+    name,
     descriptors: [Array.from(detection.descriptor)]
   });
 
   localStorage.setItem("people", JSON.stringify(people));
-
-  alert("Face saved successfully!");
-  nameInput.value = "";
+  alert("Face saved!");
 
   loadPeople();
 }
 
 /* =========================
-   FACE DETECTION + RECOGNITION
+   FACE RECOGNITION LOOP
 ========================= */
 video.addEventListener("play", async () => {
   loadPeople();
 
   setInterval(async () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (!video.videoWidth) return;
 
     const detections = await faceapi
       .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
@@ -108,7 +101,7 @@ video.addEventListener("play", async () => {
     const matcher = new faceapi.FaceMatcher(labeledDescriptors, 0.5);
 
     resized.forEach(d => {
-      const result = matcher.findBestMatch(d.descriptor);
+      const match = matcher.findBestMatch(d.descriptor);
       const box = d.detection.box;
 
       ctx.strokeStyle = "lime";
@@ -117,7 +110,7 @@ video.addEventListener("play", async () => {
 
       ctx.fillStyle = "lime";
       ctx.font = "18px Arial";
-      ctx.fillText(result.label, box.x, box.y - 10);
+      ctx.fillText(match.label, box.x, box.y - 10);
     });
   }, 150);
 });
