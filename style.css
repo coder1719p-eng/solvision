@@ -5,13 +5,12 @@ html, body {
   background: black;
 }
 
-#video, #overlay {
+video, canvas {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  object-fit: cover;
 }
 
 #controls {
@@ -21,7 +20,13 @@ html, body {
   z-index: 10;
 }
 
-#controls input, #controls button {
+#controls input {
   padding: 6px;
   font-size: 14px;
+}
+
+#controls button {
+  padding: 6px 10px;
+  font-size: 14px;
+  cursor: pointer;
 }
