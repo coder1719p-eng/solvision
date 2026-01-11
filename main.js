@@ -8,7 +8,7 @@ canvas.height = window.innerHeight;
 
 let labeledDescriptors = [];
 
-// ================= LOAD MODELS =================
+// LOAD MODELS
 async function loadModels() {
   const MODEL_URL = "./models";
 
@@ -21,21 +21,17 @@ async function loadModels() {
 
 loadModels();
 
-// ================= START CAMERA =================
+// START CAMERA
 function startCamera() {
   navigator.mediaDevices.getUserMedia({ video: true })
-    .then(stream => {
-      video.srcObject = stream;
-    })
-    .catch(err => {
-      alert("Camera permission denied");
-      console.error(err);
-    });
+    .then(stream => video.srcObject = stream)
+    .catch(() => alert("Camera access denied"));
 }
 
-// ================= LOAD SAVED PEOPLE =================
+// LOAD SAVED PEOPLE
 function loadPeople() {
   const data = JSON.parse(localStorage.getItem("people")) || [];
+
   labeledDescriptors = data.map(p =>
     new faceapi.LabeledFaceDescriptors(
       p.name,
@@ -44,23 +40,17 @@ function loadPeople() {
   );
 }
 
-// ================= SAVE FACE =================
-saveBtn.addEventListener("click", async () => {
-  const name = document.getElementById("nameInput").value.trim();
-  if (!name) {
-    alert("Enter a name first");
-    return;
-  }
+// SAVE FACE
+saveBtn.onclick = async () => {
+  const name = nameInput.value.trim();
+  if (!name) return alert("Enter a name");
 
   const detection = await faceapi
     .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
     .withFaceLandmarks()
     .withFaceDescriptor();
 
-  if (!detection) {
-    alert("No face detected");
-    return;
-  }
+  if (!detection) return alert("No face detected");
 
   const people = JSON.parse(localStorage.getItem("people")) || [];
   people.push({
@@ -69,11 +59,11 @@ saveBtn.addEventListener("click", async () => {
   });
 
   localStorage.setItem("people", JSON.stringify(people));
-  alert("Face saved!");
   loadPeople();
-});
+  alert("Face saved");
+};
 
-// ================= RECOGNITION LOOP =================
+// RECOGNITION LOOP
 video.addEventListener("play", () => {
   loadPeople();
 
@@ -85,19 +75,19 @@ video.addEventListener("play", () => {
       .withFaceLandmarks()
       .withFaceDescriptors();
 
+    if (!labeledDescriptors.length) return;
+
     const matcher = new faceapi.FaceMatcher(labeledDescriptors, 0.5);
 
     detections.forEach(d => {
-      const match = matcher.findBestMatch(d.descriptor);
       const box = d.detection.box;
+      const match = matcher.findBestMatch(d.descriptor);
 
       ctx.strokeStyle = "lime";
       ctx.lineWidth = 2;
       ctx.strokeRect(box.x, box.y, box.width, box.height);
-
       ctx.fillStyle = "lime";
-      ctx.font = "18px Arial";
-      ctx.fillText(match.label, box.x, box.y - 10);
+      ctx.fillText(match.label, box.x, box.y - 5);
     });
   }, 200);
 });
